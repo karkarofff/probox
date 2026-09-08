@@ -59,10 +59,6 @@ pip install pyinstaller psutil pillow
 pyinstaller --onefile --noconsole --icon probox.ico --add-data "probox.ico;." --name ProBox probox.py
 ```
 
-## Screenshots
-
-<!-- TODO: drop screenshots here (home page + one or two modules) -->
-
 ## Requirements
 
 - Windows 10 / 11
