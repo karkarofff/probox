@@ -18,6 +18,9 @@
 
 ProBox groups the little tools Windows should have shipped with, in one dark-themed app with a card-based home screen. Pick a module, do the job, done.
 
+<img width="1191" height="924" alt="accueil app" src="https://github.com/user-attachments/assets/2fd3bff3-6106-48f1-b230-2fe7d0a0b769" />
+
+
 ## Modules
 
 - 🚀 **Startup** — see everything that launches when Windows boots. Enable/disable items (same official mechanism as Task Manager, fully reversible) or delete entries.
