@@ -18,6 +18,9 @@
 
 ProBox regroupe les petits outils que Windows aurait dû livrer d'origine, dans une seule app au thème sombre avec un accueil à cartes. Tu choisis un module, tu fais le boulot, terminé.
 
+<img width="1200" height="929" alt="accueil app" src="https://github.com/user-attachments/assets/c112080f-1658-45d1-9013-3c3116f23d4a" />
+
+
 ## Modules
 
 - 🚀 **Démarrage** — voir tout ce qui se lance à l'ouverture de Windows. Activer/désactiver (même mécanisme officiel que le Gestionnaire des tâches, réversible) ou supprimer des entrées.
