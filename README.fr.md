@@ -59,10 +59,6 @@ pip install pyinstaller psutil pillow
 pyinstaller --onefile --noconsole --icon probox.ico --add-data "probox.ico;." --name ProBox probox.py
 ```
 
-## Captures d'écran
-
-<!-- TODO : glisser des captures ici (accueil + un ou deux modules) -->
-
 ## Prérequis
 
 - Windows 10 / 11
