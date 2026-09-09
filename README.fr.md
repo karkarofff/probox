@@ -18,7 +18,8 @@
 
 ProBox regroupe les petits outils que Windows aurait dû livrer d'origine, dans une seule app moderne et sombre (CustomTkinter) avec un accueil à cartes. Tu choisis un module, tu fais le boulot, terminé.
 
-<img width="1200" height="929" alt="accueil app" src="https://github.com/user-attachments/assets/c112080f-1658-45d1-9013-3c3116f23d4a" />
+<img width="1294" height="909" alt="probox" src="https://github.com/user-attachments/assets/3af5c358-ca36-4d1b-b93b-c2589e34dfde" />
+
 
 
 ## Modules
