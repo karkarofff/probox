@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# ProBox v1.0 - boîte à outils système Windows / Windows system toolbox
+# ProBox v2.0 (CustomTkinter) - boîte à outils système Windows / Windows system toolbox
 # Requis / requires : pip install psutil pillow  (pillow optionnel : preview images)
 # Exe : pyinstaller --onefile --noconsole --icon probox.ico --add-data "probox.ico;." --name ProBox probox.py
 
@@ -15,8 +15,14 @@ import urllib.request
 import tkinter as tk
 from tkinter import ttk, messagebox
 
+try:
+    import customtkinter as ctk
+except ImportError:
+    print("customtkinter manquant. ->  pip install customtkinter")
+    sys.exit(1)
+
 APP_NAME = "ProBox"
-APP_VERSION = "1.0.2"
+APP_VERSION = "2.0.0"
 AUTHOR = "Karkarofff"
 AUTHOR_URL = "https://github.com/karkarofff"
 # Fichier JSON hébergé : {"version": "0.8.0", "url": "https://..."}
@@ -493,7 +499,7 @@ def show_history(parent):
         save_config(cfg)
         lb.delete(0, "end")
         lb.insert("end", "  " + t("(aucune action pour l'instant)"))
-    ttk.Button(fr, text=t("Vider l'historique"), style="Soft.TButton",
+    PBButton(fr, text=t("Vider l'historique"), style="Soft.TButton",
                command=clear).pack(side="right")
 
 
@@ -589,13 +595,54 @@ class Check(tk.Frame):
                                 joinstyle="round")
 
 
+BTN_STYLES = {
+    "Kill.TButton": (ACCENT, "#c9414f", "#ffffff"),
+    "Soft.TButton": (BG3, "#3a3b47", FG),
+    "Blue.TButton": ("#4f9cf0", "#3f86d6", "#ffffff"),
+    "Green.TButton": ("#4fbf78", "#41a566", "#ffffff"),
+}
+
+
+class PBScroll(ctk.CTkScrollbar):
+    """Scrollbar fine CustomTkinter, compatible avec l'API ttk."""
+
+    def __init__(self, parent, orient="vertical", command=None, **kw):
+        kw.setdefault("bg_color", BG2)
+        super().__init__(parent, orientation=orient, command=command,
+                         width=14 if orient == "vertical" else None,
+                         height=14 if orient == "horizontal" else None,
+                         fg_color="transparent", button_color="#3a3b47",
+                         button_hover_color="#4a4b57", **kw)
+
+
+class PBButton(ctk.CTkButton):
+    """Bouton CustomTkinter compatible avec l'API ttk utilisée partout."""
+
+    def __init__(self, parent, text="", style="Soft.TButton",
+                 command=None, **kw):
+        fg, hov, txt = BTN_STYLES.get(style, BTN_STYLES["Soft.TButton"])
+        kw.setdefault("width", max(64, int(len(text) * 7.2) + 30))
+        super().__init__(parent, text=text, command=command,
+                         fg_color=fg, hover_color=hov, text_color=txt,
+                         corner_radius=10, height=32,
+                         font=("Segoe UI", 12), **kw)
+
+    def configure(self, **kw):
+        style = kw.pop("style", None)
+        if style:
+            fg, hov, txt = BTN_STYLES.get(style,
+                                          BTN_STYLES["Soft.TButton"])
+            kw.update(fg_color=fg, hover_color=hov, text_color=txt)
+        return super().configure(**kw)
+
+
 class ScrollFrame(ttk.Frame):
     """Zone défilante verticale (barre + molette)."""
 
     def __init__(self, parent):
         super().__init__(parent)
         self.canvas = tk.Canvas(self, bg=BG, highlightthickness=0)
-        self.sb = ttk.Scrollbar(self, orient="vertical",
+        self.sb = PBScroll(self, orient="vertical",
                                 command=self.canvas.yview)
         self.inner = ttk.Frame(self.canvas)
         self._win = self.canvas.create_window((0, 0), window=self.inner,
@@ -692,7 +739,7 @@ class StartupModule(ttk.Frame):
     def _build(self):
         head = ttk.Frame(self, padding=(16, 14, 16, 2))
         head.pack(fill="x")
-        ttk.Button(head, text=t("← Accueil"), style="Soft.TButton",
+        PBButton(head, text=t("← Accueil"), style="Soft.TButton",
                    command=lambda: self.app.show("home")
                    ).pack(side="left", padx=(0, 12))
         tk.Label(head, text="🚀", bg=BG, fg=self.acc,
@@ -700,7 +747,7 @@ class StartupModule(ttk.Frame):
         ttk.Label(head, text=t("Démarrage"),
                   font=("Segoe UI", 17, "bold"),
                   padding=(8, 0)).pack(side="left")
-        ttk.Button(head, text=t("⟳ Rafraîchir"), style="Soft.TButton",
+        PBButton(head, text=t("⟳ Rafraîchir"), style="Soft.TButton",
                    command=self.refresh).pack(side="right")
         ttk.Label(self, text=t("Tout ce qui se lance à l'ouverture de "
                                "Windows. Désactive ce qui ralentit ton PC, "
@@ -720,27 +767,27 @@ class StartupModule(ttk.Frame):
         self.tree.tag_configure("off", foreground=FG_DIM)
         self.tree.tag_configure("on", foreground=FG)
 
-        sb = ttk.Scrollbar(self.tree, orient="vertical",
+        sb = PBScroll(self.tree, orient="vertical",
                            command=self.tree.yview)
         self.tree.configure(yscrollcommand=sb.set)
         sb.pack(side="right", fill="y")
 
         bar = ttk.Frame(self, padding=(16, 6, 16, 12))
         bar.pack(fill="x")
-        b1 = ttk.Button(bar, text=t("Activer / Désactiver"),
+        b1 = PBButton(bar, text=t("Activer / Désactiver"),
                         style="Blue.TButton", command=self.toggle)
         b1.pack(side="left")
         Tooltip(b1, t("Active ou désactive l'élément sélectionné au "
                       "démarrage.\nDésactiver ne désinstalle rien : le "
                       "programme reste sur le PC, il ne se lancera juste "
                       "plus tout seul."))
-        b2 = ttk.Button(bar, text=t("Supprimer l'entrée"),
+        b2 = PBButton(bar, text=t("Supprimer l'entrée"),
                         style="Kill.TButton", command=self.delete)
         b2.pack(side="left", padx=6)
         Tooltip(b2, t("Supprime définitivement l'entrée de démarrage (le "
                       "programme lui-même n'est pas désinstallé).\nPréfère "
                       "Désactiver si tu n'es pas sûr."))
-        b3 = ttk.Button(bar, text=t("📁 Ouvrir l'emplacement"),
+        b3 = PBButton(bar, text=t("📁 Ouvrir l'emplacement"),
                         style="Soft.TButton", command=self.open_location)
         b3.pack(side="left")
         Tooltip(b3, t("Ouvre l'explorateur avec le fichier déjà "
@@ -937,14 +984,14 @@ class NetworkModule(ttk.Frame):
     def _build(self):
         head = ttk.Frame(self, padding=(16, 14, 16, 2))
         head.pack(fill="x")
-        ttk.Button(head, text=t("← Accueil"), style="Soft.TButton",
+        PBButton(head, text=t("← Accueil"), style="Soft.TButton",
                    command=lambda: self.app.show("home")
                    ).pack(side="left", padx=(0, 12))
         tk.Label(head, text="📡", bg=BG, fg=self.acc,
                  font=("Segoe UI Emoji", 18)).pack(side="left")
         ttk.Label(head, text=t("Réseau"), font=("Segoe UI", 17, "bold"),
                   padding=(8, 0)).pack(side="left")
-        db = ttk.Button(head, text=t("🩺 Diagnostic"), style="Blue.TButton",
+        db = PBButton(head, text=t("🩺 Diagnostic"), style="Blue.TButton",
                         command=self.show_diagnostic)
         db.pack(side="right")
         Tooltip(db, t("Teste la connexion et répare les problèmes réseau "
@@ -980,20 +1027,20 @@ class NetworkModule(ttk.Frame):
         self.tree.pack(fill="both", expand=True, padx=16, pady=(0, 4))
         self.tree.bind("<Double-1>", lambda e: self.show_details())
 
-        sb = ttk.Scrollbar(self.tree, orient="vertical",
+        sb = PBScroll(self.tree, orient="vertical",
                            command=self.tree.yview)
         self.tree.configure(yscrollcommand=sb.set)
         sb.pack(side="right", fill="y")
 
         bar = ttk.Frame(self, padding=(16, 6, 16, 12))
         bar.pack(fill="x")
-        b1 = ttk.Button(bar, text=t("☠ Tuer le process"),
+        b1 = PBButton(bar, text=t("☠ Tuer le process"),
                         style="Kill.TButton",
                         command=self.kill_selected)
         b1.pack(side="left")
         Tooltip(b1, t("Tue de force l'application sélectionnée.\nSa "
                       "connexion s'arrête immédiatement."))
-        b2 = ttk.Button(bar, text=t("📁 Ouvrir l'emplacement"),
+        b2 = PBButton(bar, text=t("📁 Ouvrir l'emplacement"),
                         style="Soft.TButton", command=self.open_location)
         b2.pack(side="left", padx=6)
         Tooltip(b2, t("Ouvre l'explorateur avec le fichier déjà "
@@ -1091,7 +1138,7 @@ class NetworkModule(ttk.Frame):
         box = ttk.Frame(win, padding=(16, 14, 16, 4))
         box.pack(fill="x")
         for key, name in tests:
-            row = tk.Frame(box, bg=BG2)
+            row = ctk.CTkFrame(box, fg_color=BG2, corner_radius=10)
             row.pack(fill="x", pady=3)
             tk.Label(row, text=name, bg=BG2, fg=FG,
                      font=("Segoe UI", 10)).pack(side="left",
@@ -1101,7 +1148,7 @@ class NetworkModule(ttk.Frame):
             lbl.pack(side="right", padx=12)
             labels[key] = lbl
 
-        rb = ttk.Button(box, text=t("▶ Relancer les tests"),
+        rb = PBButton(box, text=t("▶ Relancer les tests"),
                         style="Soft.TButton",
                         command=lambda: self._run_tests(win, labels))
         rb.pack(anchor="e", pady=(8, 0))
@@ -1111,7 +1158,7 @@ class NetworkModule(ttk.Frame):
         fix_out = tk.Label(fix, text="", bg=BG, fg=FG_DIM,
                            font=("Segoe UI", 10), justify="left",
                            anchor="nw")
-        fb = ttk.Button(fix, text=t("🔧 Réparer ma connexion"),
+        fb = PBButton(fix, text=t("🔧 Réparer ma connexion"),
                         style="Kill.TButton",
                         command=lambda: self._repair(win, fix_out, labels))
         fb.pack(anchor="w")
@@ -1392,7 +1439,7 @@ class DupesModule(ttk.Frame):
     def _build(self):
         head = ttk.Frame(self, padding=(16, 14, 16, 2))
         head.pack(fill="x")
-        ttk.Button(head, text=t("← Accueil"), style="Soft.TButton",
+        PBButton(head, text=t("← Accueil"), style="Soft.TButton",
                    command=lambda: self.app.show("home")
                    ).pack(side="left", padx=(0, 12))
         tk.Label(head, text="🗂", bg=BG, fg=self.acc,
@@ -1409,10 +1456,10 @@ class DupesModule(ttk.Frame):
 
         ctrl = ttk.Frame(self, padding=(16, 0, 16, 6))
         ctrl.pack(fill="x")
-        ttk.Button(ctrl, text=t("📁 Choisir un dossier"),
+        PBButton(ctrl, text=t("📁 Choisir un dossier"),
                    style="Soft.TButton",
                    command=self.pick_folder).pack(side="left")
-        bd = ttk.Button(ctrl, text=t("💽 Disque entier"),
+        bd = PBButton(ctrl, text=t("💽 Disque entier"),
                         style="Soft.TButton", command=self.pick_drive)
         bd.pack(side="left", padx=6)
         self.drive_btn = bd
@@ -1422,7 +1469,7 @@ class DupesModule(ttk.Frame):
         self.folder_lbl = ttk.Label(ctrl, text=t("Aucun dossier choisi"),
                                     style="Dim.TLabel", padding=(10, 0))
         self.folder_lbl.pack(side="left")
-        self.scan_btn = ttk.Button(ctrl, text=t("Lancer le scan"),
+        self.scan_btn = PBButton(ctrl, text=t("Lancer le scan"),
                                    style="Blue.TButton", command=self.scan)
         self.scan_btn.pack(side="right")
         self.min_size = tk.BooleanVar(value=True)
@@ -1455,32 +1502,32 @@ class DupesModule(ttk.Frame):
         self.tree.column("path", width=440, anchor="w")
         self.tree.pack(fill="both", expand=True, padx=16, pady=(0, 4))
 
-        sb = ttk.Scrollbar(self.tree, orient="vertical",
+        sb = PBScroll(self.tree, orient="vertical",
                            command=self.tree.yview)
         self.tree.configure(yscrollcommand=sb.set)
         sb.pack(side="right", fill="y")
 
         bar = ttk.Frame(self, padding=(16, 6, 16, 12))
         bar.pack(fill="x")
-        b1 = ttk.Button(bar, text=t("✔ Tout sélectionner sauf 1 par groupe"),
+        b1 = PBButton(bar, text=t("✔ Tout sélectionner sauf 1 par groupe"),
                         style="Soft.TButton", command=self.auto_select)
         b1.pack(side="left")
         Tooltip(b1, t("Sélectionne automatiquement toutes les copies SAUF "
                       "la plus ancienne de chaque groupe.\nIl te reste "
                       "juste à cliquer sur Corbeille."))
-        b2 = ttk.Button(bar, text=t("🗑 Mettre la sélection à la corbeille"),
+        b2 = PBButton(bar, text=t("🗑 Mettre la sélection à la corbeille"),
                         style="Kill.TButton", command=self.trash_selected)
         b2.pack(side="left", padx=6)
         Tooltip(b2, t("Envoie les fichiers sélectionnés à la corbeille "
                       "Windows.\nRécupérables tant que tu ne vides pas la "
                       "corbeille."))
-        b3 = ttk.Button(bar, text=t("🖼 Ouvrir le fichier"),
+        b3 = PBButton(bar, text=t("🖼 Ouvrir le fichier"),
                         style="Soft.TButton", command=self.open_file)
         b3.pack(side="left")
         Tooltip(b3, t("Ouvre le fichier sélectionné avec son application "
                       "par défaut.\nAstuce : double-clic sur une ligne "
                       "fait pareil."))
-        b4 = ttk.Button(bar, text=t("📁 Ouvrir l'emplacement"),
+        b4 = PBButton(bar, text=t("📁 Ouvrir l'emplacement"),
                         style="Soft.TButton", command=self.open_location)
         b4.pack(side="left", padx=6)
         Tooltip(b4, t("Ouvre l'explorateur avec le fichier déjà "
@@ -1776,7 +1823,7 @@ class TidyModule(ttk.Frame):
     def _build(self):
         head = ttk.Frame(self, padding=(16, 14, 16, 2))
         head.pack(fill="x")
-        ttk.Button(head, text=t("← Accueil"), style="Soft.TButton",
+        PBButton(head, text=t("← Accueil"), style="Soft.TButton",
                    command=lambda: self.app.show("home")
                    ).pack(side="left", padx=(0, 12))
         tk.Label(head, text="🧹", bg=BG, fg=self.acc,
@@ -1794,20 +1841,20 @@ class TidyModule(ttk.Frame):
 
         ctrl = ttk.Frame(self, padding=(16, 0, 16, 6))
         ctrl.pack(fill="x")
-        ttk.Button(ctrl, text=t("📁 Changer de dossier"),
+        PBButton(ctrl, text=t("📁 Changer de dossier"),
                    style="Soft.TButton",
                    command=self.pick_folder).pack(side="left")
         self.folder_lbl = ttk.Label(ctrl, text=self.folder,
                                     style="Dim.TLabel", padding=(10, 0))
         self.folder_lbl.pack(side="left")
-        self.tidy_btn = ttk.Button(ctrl, text=t("🧹 Ranger"),
+        self.tidy_btn = PBButton(ctrl, text=t("🧹 Ranger"),
                                    style="Green.TButton", command=self.tidy,
                                    state="disabled")
         self.tidy_btn.pack(side="right")
         Tooltip(self.tidy_btn, t("Déplace les fichiers selon le plan "
                                  "affiché ci-dessous.\nActif après une "
                                  "analyse."))
-        ab = ttk.Button(ctrl, text=t("🔍 Analyser"), style="Blue.TButton",
+        ab = PBButton(ctrl, text=t("🔍 Analyser"), style="Blue.TButton",
                         command=self.analyse)
         ab.pack(side="right", padx=6)
         Tooltip(ab, t("Montre ce qui serait déplacé et où.\nRIEN ne bouge "
@@ -1833,14 +1880,14 @@ class TidyModule(ttk.Frame):
         self.tree.column("dest", width=400, anchor="w")
         self.tree.pack(fill="both", expand=True, padx=16, pady=(0, 4))
 
-        sb = ttk.Scrollbar(self.tree, orient="vertical",
+        sb = PBScroll(self.tree, orient="vertical",
                            command=self.tree.yview)
         self.tree.configure(yscrollcommand=sb.set)
         sb.pack(side="right", fill="y")
 
         bar = ttk.Frame(self, padding=(16, 6, 16, 12))
         bar.pack(fill="x")
-        ub = ttk.Button(bar, text=t("↩ Annuler le dernier rangement"),
+        ub = PBButton(bar, text=t("↩ Annuler le dernier rangement"),
                         style="Soft.TButton", command=self.undo)
         ub.pack(side="left")
         Tooltip(ub, t("Remet à leur place d'origine les fichiers déplacés "
@@ -2041,21 +2088,21 @@ class CleanModule(ttk.Frame):
     def _build(self):
         head = ttk.Frame(self, padding=(16, 14, 16, 2))
         head.pack(fill="x")
-        ttk.Button(head, text=t("← Accueil"), style="Soft.TButton",
+        PBButton(head, text=t("← Accueil"), style="Soft.TButton",
                    command=lambda: self.app.show("home")
                    ).pack(side="left", padx=(0, 12))
         tk.Label(head, text="🧽", bg=BG, fg=self.acc,
                  font=("Segoe UI Emoji", 18)).pack(side="left")
         ttk.Label(head, text=t("Nettoyage"), font=("Segoe UI", 17, "bold"),
                   padding=(8, 0)).pack(side="left")
-        self.clean_btn = ttk.Button(head, text=t("🧹 Nettoyer la sélection"),
+        self.clean_btn = PBButton(head, text=t("🧹 Nettoyer la sélection"),
                                     style="Kill.TButton", command=self.clean,
                                     state="disabled")
         self.clean_btn.pack(side="right")
         Tooltip(self.clean_btn,
                 t("Supprime définitivement le contenu des catégories "
                   "cochées.\nActif après une analyse."))
-        ab = ttk.Button(head, text=t("🔍 Analyser"), style="Blue.TButton",
+        ab = PBButton(head, text=t("🔍 Analyser"), style="Blue.TButton",
                         command=self.analyse)
         ab.pack(side="right", padx=6)
         Tooltip(ab, t("Calcule la taille récupérable de chaque catégorie.\n"
@@ -2072,7 +2119,7 @@ class CleanModule(ttk.Frame):
         box = ttk.Frame(self, padding=(16, 0))
         box.pack(fill="x")
         for key in self.CATS:
-            row = tk.Frame(box, bg=BG2)
+            row = ctk.CTkFrame(box, fg_color=BG2, corner_radius=10)
             row.pack(fill="x", pady=3)
             var = tk.BooleanVar(value=True)
             cb = Check(row, t(self.CAT_LABELS[key]), variable=var,
@@ -2204,7 +2251,7 @@ class CleanModule(ttk.Frame):
             ttk.Label(win, text=t("Ouvre la corbeille Windows pour voir "
                                   "son contenu."),
                       padding=(16, 16), wraplength=360).pack(anchor="w")
-            ttk.Button(win, text=t("🗑 Ouvrir la corbeille"),
+            PBButton(win, text=t("🗑 Ouvrir la corbeille"),
                        style="Blue.TButton",
                        command=lambda: os.startfile(
                            "shell:RecycleBinFolder")).pack(pady=8)
@@ -2227,7 +2274,7 @@ class CleanModule(ttk.Frame):
         tree.heading("path", text=t("Emplacement"))
         tree.column("path", width=630, anchor="w")
         tree.pack(fill="both", expand=True, padx=10, pady=(0, 10))
-        sb = ttk.Scrollbar(tree, orient="vertical", command=tree.yview)
+        sb = PBScroll(tree, orient="vertical", command=tree.yview)
         tree.configure(yscrollcommand=sb.set)
         sb.pack(side="right", fill="y")
         for s, p in items:
@@ -2328,7 +2375,7 @@ class DiskModule(ttk.Frame):
     def _build(self):
         head = ttk.Frame(self, padding=(16, 14, 16, 2))
         head.pack(fill="x")
-        ttk.Button(head, text=t("← Accueil"), style="Soft.TButton",
+        PBButton(head, text=t("← Accueil"), style="Soft.TButton",
                    command=lambda: self.app.show("home")
                    ).pack(side="left", padx=(0, 12))
         tk.Label(head, text="💾", bg=BG, fg=self.acc,
@@ -2336,7 +2383,7 @@ class DiskModule(ttk.Frame):
         ttk.Label(head, text=t("Espace disque"),
                   font=("Segoe UI", 17, "bold"),
                   padding=(8, 0)).pack(side="left")
-        self.scan_btn = ttk.Button(head, text=t("Lancer le scan"),
+        self.scan_btn = PBButton(head, text=t("Lancer le scan"),
                                    style="Blue.TButton", command=self.scan)
         self.scan_btn.pack(side="right")
         ttk.Label(self, text=t("Analyse un disque ou un dossier et montre "
@@ -2349,21 +2396,21 @@ class DiskModule(ttk.Frame):
 
         ctrl = ttk.Frame(self, padding=(16, 0, 16, 4))
         ctrl.pack(fill="x")
-        ttk.Button(ctrl, text=t("📁 Choisir un dossier"),
+        PBButton(ctrl, text=t("📁 Choisir un dossier"),
                    style="Soft.TButton",
                    command=self.pick_folder).pack(side="left")
-        bd = ttk.Button(ctrl, text=t("💽 Disque entier"),
+        bd = PBButton(ctrl, text=t("💽 Disque entier"),
                         style="Soft.TButton", command=self.pick_drive)
         bd.pack(side="left", padx=6)
         self.drive_btn = bd
         self.folder_lbl = ttk.Label(ctrl, text=self.folder,
                                     style="Dim.TLabel", padding=(10, 0))
         self.folder_lbl.pack(side="left")
-        self.files_tab = ttk.Button(ctrl, text=t("📄 Plus gros fichiers"),
+        self.files_tab = PBButton(ctrl, text=t("📄 Plus gros fichiers"),
                                     style="Soft.TButton",
                                     command=lambda: self._switch("files"))
         self.files_tab.pack(side="right")
-        self.folders_tab = ttk.Button(ctrl, text=t("📂 Dossiers"),
+        self.folders_tab = PBButton(ctrl, text=t("📂 Dossiers"),
                                       style="Blue.TButton",
                                       command=lambda:
                                       self._switch("folders"))
@@ -2389,19 +2436,19 @@ class DiskModule(ttk.Frame):
         self.tree.bind("<Button-3>", self._popup)
         self.tree.bind("<Double-1>", self._dblclick)
 
-        sb = ttk.Scrollbar(self.tree, orient="vertical",
+        sb = PBScroll(self.tree, orient="vertical",
                            command=self.tree.yview)
         self.tree.configure(yscrollcommand=sb.set)
         sb.pack(side="right", fill="y")
 
         bar = ttk.Frame(self, padding=(16, 6, 16, 12))
         bar.pack(fill="x")
-        b1 = ttk.Button(bar, text=t("📁 Ouvrir l'emplacement"),
+        b1 = PBButton(bar, text=t("📁 Ouvrir l'emplacement"),
                         style="Soft.TButton", command=self.open_location)
         b1.pack(side="left")
         Tooltip(b1, t("Ouvre l'explorateur avec le fichier déjà "
                       "sélectionné dedans."))
-        b2 = ttk.Button(bar, text=t("🗑 Mettre à la corbeille"),
+        b2 = PBButton(bar, text=t("🗑 Mettre à la corbeille"),
                         style="Kill.TButton", command=self.trash_selected)
         b2.pack(side="left", padx=6)
         Tooltip(b2, t("Envoie le fichier sélectionné (vue Fichiers) à la "
@@ -2688,14 +2735,14 @@ class WifiModule(ttk.Frame):
     def _build(self):
         head = ttk.Frame(self, padding=(16, 14, 16, 2))
         head.pack(fill="x")
-        ttk.Button(head, text=t("← Accueil"), style="Soft.TButton",
+        PBButton(head, text=t("← Accueil"), style="Soft.TButton",
                    command=lambda: self.app.show("home")
                    ).pack(side="left", padx=(0, 12))
         tk.Label(head, text="📶", bg=BG, fg=self.acc,
                  font=("Segoe UI Emoji", 18)).pack(side="left")
         ttk.Label(head, text=t("Wi-Fi"), font=("Segoe UI", 17, "bold"),
                   padding=(8, 0)).pack(side="left")
-        ttk.Button(head, text=t("⟳ Rafraîchir"), style="Soft.TButton",
+        PBButton(head, text=t("⟳ Rafraîchir"), style="Soft.TButton",
                    command=self.refresh).pack(side="right")
         ttk.Label(self, text=t("Tous les réseaux Wi-Fi que ce PC connaît, "
                                "avec leur mot de passe enregistré. Pratique "
@@ -2714,21 +2761,21 @@ class WifiModule(ttk.Frame):
             self.tree.column(c, width=w, anchor="w")
         self.tree.pack(fill="both", expand=True, padx=16, pady=(0, 4))
 
-        sb = ttk.Scrollbar(self.tree, orient="vertical",
+        sb = PBScroll(self.tree, orient="vertical",
                            command=self.tree.yview)
         self.tree.configure(yscrollcommand=sb.set)
         sb.pack(side="right", fill="y")
 
         bar = ttk.Frame(self, padding=(16, 6, 16, 12))
         bar.pack(fill="x")
-        self.show_btn = ttk.Button(bar,
+        self.show_btn = PBButton(bar,
                                    text=t("👁 Afficher les mots de passe"),
                                    style="Blue.TButton",
                                    command=self.toggle_show)
         self.show_btn.pack(side="left")
         Tooltip(self.show_btn,
                 t("Affiche ou masque les mots de passe dans la liste."))
-        b2 = ttk.Button(bar, text=t("📋 Copier le mot de passe"),
+        b2 = PBButton(bar, text=t("📋 Copier le mot de passe"),
                         style="Soft.TButton", command=self.copy_key)
         b2.pack(side="left", padx=6)
         Tooltip(b2, t("Copie le mot de passe du réseau sélectionné dans "
@@ -2829,54 +2876,60 @@ MODULES = [
 ]
 
 
-class HomePage(ScrollFrame):
+class HomePage(ctk.CTkScrollableFrame):
     def __init__(self, parent, app):
-        super().__init__(parent)
-        brand = ttk.Frame(self.inner, padding=(24, 18, 24, 0))
-        brand.pack(fill="x")
-        tk.Label(brand, text="🧰", bg=BG, font=("Segoe UI Emoji", 22)
-                 ).pack(side="left")
-        ttk.Label(brand, text=APP_NAME, font=("Segoe UI", 20, "bold"),
-                  padding=(8, 0)).pack(side="left")
-        ttk.Label(brand, text=f"v{APP_VERSION}", style="Dim.TLabel",
-                  padding=(4, 6, 0, 0)).pack(side="left")
-        lb = ttk.Button(brand, text="🌐 EN" if LANG == "fr" else "🌐 FR",
-                        style="Soft.TButton", command=app.switch_lang)
+        super().__init__(parent, fg_color=BG, corner_radius=0)
+        brand = ctk.CTkFrame(self, fg_color="transparent")
+        brand.pack(fill="x", padx=24, pady=(18, 0))
+        ctk.CTkLabel(brand, text="🧰", font=("Segoe UI Emoji", 26)
+                     ).pack(side="left")
+        ctk.CTkLabel(brand, text=APP_NAME,
+                     font=("Segoe UI", 24, "bold")).pack(side="left",
+                                                         padx=(10, 4))
+        ctk.CTkLabel(brand, text=f"v{APP_VERSION}", text_color=FG_DIM,
+                     font=("Segoe UI", 12)).pack(side="left",
+                                                 pady=(10, 0))
+        lb = ctk.CTkButton(brand,
+                           text="🌐 EN" if LANG == "fr" else "🌐 FR",
+                           width=76, height=32, corner_radius=10,
+                           fg_color=BG3, hover_color="#333540",
+                           text_color=FG, font=("Segoe UI", 12),
+                           command=app.switch_lang)
         lb.pack(side="right")
-        Tooltip(lb, t("Basculer l'interface en anglais"))
-        hb = ttk.Button(brand, text=t("📜 Historique"), style="Soft.TButton",
-                        command=lambda: show_history(app))
-        hb.pack(side="right", padx=6)
-        Tooltip(hb, t("Tout ce que {app} a modifié sur ce PC, pour garder "
-                      "l'esprit tranquille.").format(app=APP_NAME))
+        hb = ctk.CTkButton(brand, text=t("📜 Historique"),
+                           width=110, height=32, corner_radius=10,
+                           fg_color=BG3, hover_color="#333540",
+                           text_color=FG, font=("Segoe UI", 12),
+                           command=lambda: show_history(app))
+        hb.pack(side="right", padx=8)
 
         h = time.localtime().tm_hour
         hello = t("Bonjour") if 5 <= h < 18 else t("Bonsoir")
-        ttk.Label(self.inner,
-                  text=t("{h} ! Choisis un module pour commencer."
-                         ).format(h=hello),
-                  style="Dim.TLabel", padding=(26, 6, 24, 8)
-                  ).pack(anchor="w")
+        ctk.CTkLabel(self,
+                     text=t("{h} ! Choisis un module pour commencer."
+                            ).format(h=hello),
+                     text_color=FG_DIM, font=("Segoe UI", 12),
+                     anchor="w").pack(fill="x", padx=26, pady=(6, 8))
 
         # carte état du PC (temps réel)
-        state = tk.Frame(self.inner, bg=BG2)
-        state.pack(fill="x", padx=24, pady=(0, 10))
-        self._dot = tk.Label(state, text="●", bg=BG2, fg=FG_DIM,
-                             font=("Segoe UI", 15))
-        self._dot.pack(side="left", padx=(14, 10), pady=10)
-        col = tk.Frame(state, bg=BG2)
-        col.pack(side="left", pady=8)
-        self._state_lbl = tk.Label(col, text="…", bg=BG2, fg=FG,
-                                   font=("Segoe UI", 11, "bold"),
-                                   anchor="w")
+        state = ctk.CTkFrame(self, fg_color=BG2, corner_radius=14)
+        state.pack(fill="x", padx=24, pady=(0, 12))
+        self._dot = ctk.CTkLabel(state, text="●", text_color=FG_DIM,
+                                 font=("Segoe UI", 16), width=20)
+        self._dot.pack(side="left", padx=(16, 10), pady=12)
+        col = ctk.CTkFrame(state, fg_color="transparent")
+        col.pack(side="left", pady=10)
+        self._state_lbl = ctk.CTkLabel(col, text="…", text_color=FG,
+                                       font=("Segoe UI", 12, "bold"),
+                                       anchor="w")
         self._state_lbl.pack(anchor="w")
-        self._state_sub = tk.Label(col, text="", bg=BG2, fg=FG_DIM,
-                                   font=("Segoe UI", 9), anchor="w")
+        self._state_sub = ctk.CTkLabel(col, text="", text_color=FG_DIM,
+                                       font=("Segoe UI", 10), anchor="w")
         self._state_sub.pack(anchor="w")
         self._tick_state()
 
-        grid = ttk.Frame(self.inner, padding=(20, 4))
-        grid.pack(fill="both", expand=True)
+        grid = ctk.CTkFrame(self, fg_color="transparent")
+        grid.pack(fill="both", expand=True, padx=16, pady=4)
         for i, (key, icon, title, desc) in enumerate(MODULES):
             card = ModuleCard(grid, icon, t(title), t(desc),
                               MOD_COLORS[key],
@@ -2884,16 +2937,20 @@ class HomePage(ScrollFrame):
             card.grid(row=i // 3, column=i % 3, padx=8, pady=10)
         grid.grid_columnconfigure((0, 1, 2), weight=1)
 
-        credit = ttk.Label(self.inner, text=f"{APP_NAME} v{APP_VERSION} — "
-                                      f"{t('développé par')} {AUTHOR}",
-                           style="Dim.TLabel", cursor="hand2",
-                           padding=(24, 4, 24, 10))
-        credit.pack(anchor="e")
+        credit = ctk.CTkLabel(self, text=f"{APP_NAME} v{APP_VERSION} — "
+                                         f"{t('développé par')} {AUTHOR}",
+                              text_color=FG_DIM, font=("Segoe UI", 10),
+                              cursor="hand2", anchor="e")
+        credit.pack(fill="x", padx=24, pady=(4, 12))
         credit.bind("<Button-1>", lambda e: webbrowser.open(AUTHOR_URL))
         credit.bind("<Button-3>",
                     lambda e: app.check_updates(silent=False))
-        Tooltip(credit, t("Clique pour ouvrir la page de {a}.\nClic droit "
-                          ": vérifier les mises à jour.").format(a=AUTHOR))
+
+    def enable_wheel(self):
+        pass
+
+    def disable_wheel(self):
+        pass
 
     def _tick_state(self):
         if not self.winfo_exists():
@@ -2928,7 +2985,7 @@ class HomePage(ScrollFrame):
 
             def apply():
                 if self.winfo_exists():
-                    self._dot.configure(fg=color)
+                    self._dot.configure(text_color=color)
                     self._state_lbl.configure(text=txt)
                     self._state_sub.configure(text=sub)
             try:
@@ -2945,9 +3002,9 @@ class HomePage(ScrollFrame):
 # ======================================================================
 #  APPLICATION
 # ======================================================================
-class ProBox(tk.Tk):
+class ProBox(ctk.CTk):
     def __init__(self):
-        super().__init__()
+        super().__init__(fg_color=BG)
         self.title(APP_NAME)
         self.geometry("1080x680")
         self.minsize(760, 430)
@@ -3059,7 +3116,7 @@ class ProBox(tk.Tk):
             s.map(name, background=[("active", bg), ("pressed", bg)])
 
     def _build(self):
-        self.content = ttk.Frame(self)
+        self.content = ctk.CTkFrame(self, fg_color=BG, corner_radius=0)
         self.content.pack(fill="both", expand=True)
         self._pages = {}
 
@@ -3094,4 +3151,5 @@ class ProBox(tk.Tk):
 
 
 if __name__ == "__main__":
+    ctk.set_appearance_mode("dark")
     ProBox().mainloop()

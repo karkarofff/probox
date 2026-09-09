@@ -16,7 +16,7 @@
 
 ## What is it?
 
-ProBox groups the little tools Windows should have shipped with, in one dark-themed app with a card-based home screen. Pick a module, do the job, done.
+ProBox groups the little tools Windows should have shipped with, in one modern dark app (CustomTkinter) with a card-based home screen. Pick a module, do the job, done.
 
 <img width="1191" height="924" alt="accueil app" src="https://github.com/user-attachments/assets/2fd3bff3-6106-48f1-b230-2fe7d0a0b769" />
 
@@ -31,7 +31,7 @@ ProBox groups the little tools Windows should have shipped with, in one dark-the
 - 🧽 **Cleanup** — free disk space: temp files, browser caches, thumbnail cache, recycle bin, Windows Update leftovers. Analyze first with per-category sizes and a detailed view of what would be removed.
 - 💾 **Disk space** — a pocket TreeSize: heaviest folders (browsable), largest files, right-click actions, and a basic drive-health check.
 
-Plus: a live **PC status card** on the home screen (CPU · RAM · disk), an **action history** of everything ProBox changed on the system, bilingual interface (English/French, auto-detected, 🌐 button), update notifications, and a custom dark UI everywhere.
+Plus: a live **PC status card** on the home screen (CPU · RAM · disk), an **action history** of everything ProBox changed on the system, bilingual interface (English/French, auto-detected, 🌐 button), update notifications, and a fully modern CustomTkinter interface (rounded everything, smooth hovers) since v2.0.
 
 ## Installation
 
@@ -46,17 +46,17 @@ Download `ProBox.exe` from the [Releases](../../releases) page and run it. Nothi
 ### From source
 
 ```
-pip install psutil pillow
+pip install psutil pillow customtkinter
 python probox.py
 ```
 
-(`psutil` powers the Network module, `pillow` enables image previews in Duplicates; the rest of the app runs on the standard library alone.)
+(`psutil` powers the Network module, `pillow` enables image previews in Duplicates, `customtkinter` renders the modern interface.)
 
 ### Build the exe yourself
 
 ```
-pip install pyinstaller psutil pillow
-pyinstaller --onefile --noconsole --icon probox.ico --add-data "probox.ico;." --name ProBox probox.py
+pip install pyinstaller psutil pillow customtkinter
+pyinstaller --onefile --noconsole --collect-all customtkinter --icon probox.ico --add-data "probox.ico;." --name ProBox probox.py
 ```
 
 ## Requirements
@@ -70,5 +70,5 @@ MIT — do whatever you want with it, a mention is appreciated.
 ---
 
 <p align="center">
-  Developed by <a href="https://github.com/karkarofff">Karkarofff</a> — also check out <a href="https://github.com/karkarofff/prokill">ProKill</a>
+  Developed by <a href="https://github.com/karkarofff">Karkarofff</a> — also check out <a href="https://github.com/karkarofff/prokill">ProKill</a> and <a href="https://github.com/karkarofff/prograb">ProGrab</a>
 </p>

@@ -16,7 +16,7 @@
 
 ## C'est quoi ?
 
-ProBox regroupe les petits outils que Windows aurait dû livrer d'origine, dans une seule app au thème sombre avec un accueil à cartes. Tu choisis un module, tu fais le boulot, terminé.
+ProBox regroupe les petits outils que Windows aurait dû livrer d'origine, dans une seule app moderne et sombre (CustomTkinter) avec un accueil à cartes. Tu choisis un module, tu fais le boulot, terminé.
 
 <img width="1200" height="929" alt="accueil app" src="https://github.com/user-attachments/assets/c112080f-1658-45d1-9013-3c3116f23d4a" />
 
@@ -31,7 +31,7 @@ ProBox regroupe les petits outils que Windows aurait dû livrer d'origine, dans 
 - 🧽 **Nettoyage** — libère de l'espace : fichiers temporaires, caches navigateurs, cache des miniatures, corbeille, restes de Windows Update. Analyse d'abord avec les tailles par catégorie et le détail de ce qui serait supprimé.
 - 💾 **Espace disque** — un TreeSize de poche : dossiers les plus lourds (navigables), plus gros fichiers, actions au clic droit, et un contrôle basique de la santé des disques.
 
-Et aussi : une **carte État du PC** en temps réel sur l'accueil (CPU · RAM · disque), un **historique des actions** de tout ce que ProBox a modifié sur le système, l'interface bilingue (français/anglais, détection auto, bouton 🌐), les notifications de mise à jour, et un thème sombre sur mesure partout.
+Et aussi : une **carte État du PC** en temps réel sur l'accueil (CPU · RAM · disque), un **historique des actions** de tout ce que ProBox a modifié sur le système, l'interface bilingue (français/anglais, détection auto, bouton 🌐), les notifications de mise à jour, et une interface entièrement modernisée en CustomTkinter (coins arrondis, survols fluides) depuis la v2.0.
 
 ## Installation
 
@@ -46,17 +46,17 @@ Téléchargez `ProBox.exe` depuis la page [Releases](../../releases) et lancez-l
 ### Depuis les sources
 
 ```
-pip install psutil pillow
+pip install psutil pillow customtkinter
 python probox.py
 ```
 
-(`psutil` fait tourner le module Réseau, `pillow` active les aperçus d'images dans Doublons ; le reste de l'app tourne sur la bibliothèque standard.)
+(`psutil` fait tourner le module Réseau, `pillow` active les aperçus d'images dans Doublons, `customtkinter` affiche l'interface moderne.)
 
 ### Compiler soi-même l'exe
 
 ```
-pip install pyinstaller psutil pillow
-pyinstaller --onefile --noconsole --icon probox.ico --add-data "probox.ico;." --name ProBox probox.py
+pip install pyinstaller psutil pillow customtkinter
+pyinstaller --onefile --noconsole --collect-all customtkinter --icon probox.ico --add-data "probox.ico;." --name ProBox probox.py
 ```
 
 ## Prérequis
@@ -70,5 +70,5 @@ MIT — faites-en ce que vous voulez, une mention est appréciée.
 ---
 
 <p align="center">
-  Développé par <a href="https://github.com/karkarofff">Karkarofff</a> — jetez aussi un œil à <a href="https://github.com/karkarofff/prokill">ProKill</a>
+  Développé par <a href="https://github.com/karkarofff">Karkarofff</a> — jetez aussi un œil à <a href="https://github.com/karkarofff/prokill">ProKill</a> et <a href="https://github.com/karkarofff/prograb">ProGrab</a>
 </p>
