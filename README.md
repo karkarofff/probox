@@ -18,7 +18,8 @@
 
 ProBox groups the little tools Windows should have shipped with, in one modern dark app (CustomTkinter) with a card-based home screen. Pick a module, do the job, done.
 
-<img width="1074" height="900" alt="probox" src="https://github.com/user-attachments/assets/14e687a8-4016-4341-b5ae-735761539ada" />
+<img width="1064" height="951" alt="probox english" src="https://github.com/user-attachments/assets/1b5a42f5-46e3-4955-9aac-b9076fc32e2a" />
+
 
 
 
