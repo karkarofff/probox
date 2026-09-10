@@ -22,7 +22,7 @@ except ImportError:
     sys.exit(1)
 
 APP_NAME = "ProBox"
-APP_VERSION = "2.0.0"
+APP_VERSION = "2.1.0"
 AUTHOR = "Karkarofff"
 AUTHOR_URL = "https://github.com/karkarofff"
 # Fichier JSON hébergé : {"version": "0.8.0", "url": "https://..."}
@@ -45,6 +45,7 @@ MOD_COLORS = {
     "wifi":    ("#1b3134", "#213c3f", "#4fd0c7"),
     "clean":   ("#331f27", "#3e2630", "#f06a8a"),
     "disk":    ("#2b3119", "#343c20", "#b8d34f"),
+    "convert": ("#33231f", "#3e2a26", "#f0754f"),
 }
 
 CONFIG_DIR = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")),
@@ -369,6 +370,40 @@ EN = {
      "Your system drive is almost full",
  "CPU {c}% · RAM {r}% · Disque {d}% ({free} libres)":
      "CPU {c}% · RAM {r}% · Disk {d}% ({free} free)",
+ # ----- convertisseur -----
+ "Convertisseur": "Converter",
+ "Convertir vidéos, audios et images : MP4, MP3, JPG, PNG.":
+     "Convert videos, audio and images: MP4, MP3, JPG, PNG.",
+ "Convertit tes fichiers dans les formats que tout le monde sait lire. Astuce maligne : si la vidéo est déjà dans le bon codec, elle est simplement ré-emballée en quelques secondes au lieu d'être réencodée pendant de longues minutes.":
+     "Converts your files to the formats everything can read. Smart trick: if the video is already in the right codec, it's simply remuxed in seconds instead of being re-encoded for long minutes.",
+ "➕ Ajouter des fichiers": "➕ Add files",
+ "▶ Convertir": "▶ Convert",
+ "■ Stop": "■ Stop",
+ "Convertir en :": "Convert to:",
+ "Fichiers à convertir": "Files to convert",
+ "Fichier": "File",
+ "Statut": "Status",
+ "en attente": "waiting",
+ "conversion...": "converting...",
+ "ré-emballage...": "remuxing...",
+ "✅ fait": "✅ done",
+ "❌ échec": "❌ failed",
+ "— incompatible avec la cible": "— incompatible with target",
+ "annulé": "cancelled",
+ "Préparation du convertisseur (téléchargement de ffmpeg, une seule fois)...":
+     "Setting up the converter (downloading ffmpeg, one time only)...",
+ "Échec du téléchargement de ffmpeg. Vérifie ta connexion et rouvre le module.":
+     "ffmpeg download failed. Check your connection and reopen the module.",
+ "Choisis les fichiers à convertir": "Pick the files to convert",
+ "Les fichiers convertis sont créés à côté des originaux (rien n'est écrasé ni supprimé).":
+     "Converted files are created next to the originals (nothing is overwritten or deleted).",
+ "Terminé : {ok} converti(s), {ko} échec(s).":
+     "Done: {ok} converted, {ko} failed.",
+ "Convertisseur : {n} fichier(s) convertis en {f}":
+     "Converter: {n} file(s) converted to {f}",
+ "🗑 Retirer": "🗑 Remove",
+ "Retire les fichiers sélectionnés de la liste (les fichiers eux-mêmes ne sont pas touchés).":
+     "Removes the selected files from the list (the files themselves are untouched).",
 }
 
 
@@ -2720,6 +2755,370 @@ class DiskModule(ttk.Frame):
 
 
 # ======================================================================
+#  MODULE : Convertisseur
+# ======================================================================
+FF_BIN_DIR = os.path.join(os.environ.get("APPDATA", "."), APP_NAME, "bin")
+FFMPEG = os.path.join(FF_BIN_DIR, "ffmpeg.exe")
+FFPROBE = os.path.join(FF_BIN_DIR, "ffprobe.exe")
+FFMPEG_URL = ("https://github.com/yt-dlp/FFmpeg-Builds/releases/latest/"
+              "download/ffmpeg-master-latest-win64-gpl.zip")
+IMG_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif", ".tiff",
+            ".heic"}
+AUDIO_EXTS = {".mp3", ".m4a", ".aac", ".wav", ".flac", ".ogg", ".opus",
+              ".wma"}
+
+
+class ConvertModule(ttk.Frame):
+    TARGETS = ["MP4", "MP3", "JPG", "PNG"]
+
+    def __init__(self, parent, app):
+        super().__init__(parent)
+        self.app = app
+        self.acc = MOD_COLORS["convert"][2]
+        self._files = []          # {path, iid, kind}
+        self._working = False
+        self._cancel = False
+        self._proc = None
+        self._build()
+        self._check_tools()
+
+    def _build(self):
+        head = ttk.Frame(self, padding=(16, 14, 16, 2))
+        head.pack(fill="x")
+        PBButton(head, text=t("← Accueil"), style="Soft.TButton",
+                 command=lambda: self.app.show("home")
+                 ).pack(side="left", padx=(0, 12))
+        tk.Label(head, text="🔄", bg=BG, fg=self.acc,
+                 font=("Segoe UI Emoji", 18)).pack(side="left")
+        ttk.Label(head, text=t("Convertisseur"),
+                  font=("Segoe UI", 17, "bold"),
+                  padding=(8, 0)).pack(side="left")
+        self.go_btn = PBButton(head, text=t("▶ Convertir"),
+                               style="Green.TButton", command=self.go,
+                               state="disabled")
+        self.go_btn.pack(side="right")
+        ab = PBButton(head, text=t("➕ Ajouter des fichiers"),
+                      style="Blue.TButton", command=self.add_files)
+        ab.pack(side="right", padx=6)
+        self.add_btn = ab
+
+        ttk.Label(self, text=t("Convertit tes fichiers dans les formats "
+                               "que tout le monde sait lire. Astuce "
+                               "maligne : si la vidéo est déjà dans le "
+                               "bon codec, elle est simplement "
+                               "ré-emballée en quelques secondes au lieu "
+                               "d'être réencodée pendant de longues "
+                               "minutes."),
+                  style="Dim.TLabel",
+                  padding=(18, 2, 16, 6), wraplength=780).pack(fill="x")
+
+        ctrl = ttk.Frame(self, padding=(16, 0, 16, 6))
+        ctrl.pack(fill="x")
+        ttk.Label(ctrl, text=t("Convertir en :"),
+                  font=("Segoe UI", 10, "bold")).pack(side="left")
+        self.target = ctk.CTkSegmentedButton(
+            ctrl, values=self.TARGETS, height=32, corner_radius=10,
+            fg_color=BG2, selected_color=self.acc,
+            selected_hover_color="#d9603c", unselected_color=BG2,
+            unselected_hover_color=BG3, text_color=FG,
+            font=("Segoe UI", 12))
+        self.target.set("MP4")
+        self.target.pack(side="left", padx=10)
+        rb = PBButton(ctrl, text=t("🗑 Retirer"), style="Soft.TButton",
+                      command=self.remove_selected)
+        rb.pack(side="right")
+        Tooltip(rb, t("Retire les fichiers sélectionnés de la liste "
+                      "(les fichiers eux-mêmes ne sont pas touchés)."))
+
+        self.tree = ttk.Treeview(self, columns=("size", "status"),
+                                 show="tree headings",
+                                 selectmode="extended")
+        self.tree.heading("#0", text=t("Fichier"))
+        self.tree.column("#0", width=460, anchor="w")
+        self.tree.heading("size", text=t("Taille"))
+        self.tree.column("size", width=90, anchor="w")
+        self.tree.heading("status", text=t("Statut"))
+        self.tree.column("status", width=220, anchor="w")
+        self.tree.pack(fill="both", expand=True, padx=16, pady=(0, 4))
+        sb = PBScroll(self.tree, orient="vertical",
+                      command=self.tree.yview)
+        self.tree.configure(yscrollcommand=sb.set)
+        sb.pack(side="right", fill="y")
+
+        bottom = ttk.Frame(self, padding=(16, 4, 16, 6))
+        bottom.pack(fill="x")
+        self.prog = ctk.CTkProgressBar(bottom, height=8, corner_radius=5,
+                                       progress_color=self.acc,
+                                       fg_color=BG3)
+        self.prog.set(0)
+        self.prog.pack(fill="x")
+        self.status_lbl = ttk.Label(
+            self, text=t("Les fichiers convertis sont créés à côté des "
+                         "originaux (rien n'est écrasé ni supprimé)."),
+            style="Dim.TLabel", padding=(18, 2, 16, 10), wraplength=780)
+        self.status_lbl.pack(fill="x")
+
+    # ---------- outillage ffmpeg ----------
+    def _check_tools(self):
+        if os.path.exists(FFMPEG) and os.path.exists(FFPROBE):
+            return
+        self.add_btn.configure(state="disabled")
+        self.status_lbl.configure(
+            text=t("Préparation du convertisseur (téléchargement de "
+                   "ffmpeg, une seule fois)..."))
+
+        def worker():
+            import zipfile
+            try:
+                os.makedirs(FF_BIN_DIR, exist_ok=True)
+                zpath = os.path.join(FF_BIN_DIR, "ffmpeg.zip")
+                req = urllib.request.Request(
+                    FFMPEG_URL,
+                    headers={"User-Agent": f"{APP_NAME}/{APP_VERSION}"})
+                with urllib.request.urlopen(req, timeout=30) as r:
+                    total = int(r.headers.get("Content-Length") or 0)
+                    done = 0
+                    with open(zpath, "wb") as f:
+                        while True:
+                            chunk = r.read(1024 * 256)
+                            if not chunk:
+                                break
+                            f.write(chunk)
+                            done += len(chunk)
+                            if total:
+                                self.after(0, lambda p=done / total:
+                                           self.prog.set(p))
+                with zipfile.ZipFile(zpath) as z:
+                    for name in z.namelist():
+                        base = os.path.basename(name)
+                        if base in ("ffmpeg.exe", "ffprobe.exe"):
+                            with z.open(name) as s, open(
+                                    os.path.join(FF_BIN_DIR, base),
+                                    "wb") as d:
+                                d.write(s.read())
+                os.remove(zpath)
+                self.after(0, lambda: (
+                    self.add_btn.configure(state="normal"),
+                    self.prog.set(0),
+                    self.status_lbl.configure(
+                        text=t("Les fichiers convertis sont créés à "
+                               "côté des originaux (rien n'est écrasé "
+                               "ni supprimé)."))))
+            except Exception:
+                self.after(0, lambda: self.status_lbl.configure(
+                    text=t("Échec du téléchargement de ffmpeg. Vérifie "
+                           "ta connexion et rouvre le module.")))
+        threading.Thread(target=worker, daemon=True).start()
+
+    # ---------- liste ----------
+    @staticmethod
+    def _kind(path):
+        ext = os.path.splitext(path)[1].lower()
+        if ext in IMG_EXTS:
+            return "image"
+        if ext in AUDIO_EXTS:
+            return "audio"
+        return "video"
+
+    def add_files(self):
+        from tkinter import filedialog
+        paths = filedialog.askopenfilenames(
+            title=t("Choisis les fichiers à convertir"))
+        for p in paths:
+            if any(f["path"] == p for f in self._files):
+                continue
+            try:
+                size = fmt_size(os.path.getsize(p))
+            except OSError:
+                size = "?"
+            iid = self.tree.insert("", "end",
+                                   text=os.path.basename(p),
+                                   values=(size, t("en attente")))
+            self._files.append({"path": p, "iid": iid,
+                                "kind": self._kind(p)})
+        if self._files and not self._working:
+            self.go_btn.configure(state="normal")
+
+    def remove_selected(self):
+        if self._working:
+            return
+        for iid in self.tree.selection():
+            self.tree.delete(iid)
+            self._files = [f for f in self._files if f["iid"] != iid]
+        if not self._files:
+            self.go_btn.configure(state="disabled")
+
+    def _set_status(self, iid, txt):
+        self.after(0, lambda: self.tree.set(iid, "status", txt))
+
+    # ---------- conversion ----------
+    def go(self):
+        if self._working:
+            self._cancel = True
+            if self._proc:
+                try:
+                    self._proc.kill()
+                except OSError:
+                    pass
+            return
+        self._working, self._cancel = True, False
+        self.go_btn.configure(text=t("■ Stop"), style="Kill.TButton")
+        self.add_btn.configure(state="disabled")
+        threading.Thread(target=self._worker, daemon=True).start()
+
+    @staticmethod
+    def _probe(path):
+        try:
+            flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+            out = subprocess.run(
+                [FFPROBE, "-v", "quiet", "-print_format", "json",
+                 "-show_streams", "-show_format", path],
+                capture_output=True, text=True, timeout=30,
+                creationflags=flags).stdout
+            return json.loads(out)
+        except Exception:
+            return {}
+
+    @staticmethod
+    def _out_path(path, ext):
+        base = os.path.splitext(path)[0]
+        dest = base + "." + ext
+        if os.path.abspath(dest) == os.path.abspath(path) \
+                or os.path.exists(dest):
+            dest = base + " (converti)." + ext
+        return dest
+
+    def _run_ffmpeg(self, args, duration, iid):
+        flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+        self._proc = subprocess.Popen(
+            [FFMPEG, "-y", "-hide_banner", "-nostats"] + args
+            + ["-progress", "pipe:1"],
+            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+            text=True, bufsize=1, creationflags=flags,
+            encoding="utf-8", errors="replace")
+        for line in iter(self._proc.stdout.readline, ""):
+            line = line.strip()
+            if line.startswith("out_time_ms=") and duration:
+                try:
+                    ms = int(line.split("=")[1]) / 1_000_000
+                    self.after(0, lambda p=min(ms / duration, 1.0):
+                               self.prog.set(p))
+                except ValueError:
+                    pass
+        code = self._proc.wait()
+        self._proc = None
+        return code == 0
+
+    def _worker(self):
+        target = self.target.get()
+        ok = ko = 0
+        for f in self._files:
+            if self._cancel:
+                self._set_status(f["iid"], t("annulé"))
+                continue
+            path, kind = f["path"], f["kind"]
+            self.after(0, lambda: self.prog.set(0))
+            # matrice de compatibilité
+            if target in ("JPG", "PNG"):
+                if kind != "image":
+                    self._set_status(f["iid"],
+                                     t("— incompatible avec la cible"))
+                    ko += 1
+                    continue
+                self._set_status(f["iid"], t("conversion..."))
+                try:
+                    from PIL import Image
+                    img = Image.open(path)
+                    if target == "JPG" and img.mode in ("RGBA", "P",
+                                                        "LA"):
+                        img = img.convert("RGB")
+                    ext = "jpg" if target == "JPG" else "png"
+                    img.save(self._out_path(path, ext))
+                    self._set_status(f["iid"], t("✅ fait"))
+                    ok += 1
+                except Exception:
+                    self._set_status(f["iid"], t("❌ échec"))
+                    ko += 1
+                continue
+            if target == "MP3":
+                if kind == "image":
+                    self._set_status(f["iid"],
+                                     t("— incompatible avec la cible"))
+                    ko += 1
+                    continue
+                info = self._probe(path)
+                dur = float((info.get("format") or {})
+                            .get("duration") or 0)
+                self._set_status(f["iid"], t("conversion..."))
+                good = self._run_ffmpeg(
+                    ["-i", path, "-vn", "-c:a", "libmp3lame",
+                     "-q:a", "2", self._out_path(path, "mp3")],
+                    dur, f["iid"])
+                self._set_status(f["iid"],
+                                 t("✅ fait") if good else
+                                 (t("annulé") if self._cancel
+                                  else t("❌ échec")))
+                ok += good
+                ko += not good and not self._cancel
+                continue
+            # cible MP4
+            if kind != "video":
+                self._set_status(f["iid"],
+                                 t("— incompatible avec la cible"))
+                ko += 1
+                continue
+            info = self._probe(path)
+            dur = float((info.get("format") or {}).get("duration") or 0)
+            vcodec = acodec = ""
+            for s in info.get("streams", []):
+                if s.get("codec_type") == "video" and not vcodec:
+                    vcodec = s.get("codec_name", "")
+                elif s.get("codec_type") == "audio" and not acodec:
+                    acodec = s.get("codec_name", "")
+            remux = vcodec == "h264" and acodec in ("aac", "mp3", "")
+            dest = self._out_path(path, "mp4")
+            if remux:
+                self._set_status(f["iid"], t("ré-emballage..."))
+                args = ["-i", path, "-c", "copy",
+                        "-movflags", "+faststart", dest]
+            else:
+                self._set_status(f["iid"], t("conversion..."))
+                args = ["-i", path, "-c:v", "libx264", "-preset",
+                        "veryfast", "-crf", "23", "-c:a", "aac",
+                        "-b:a", "192k", "-movflags", "+faststart",
+                        dest]
+            good = self._run_ffmpeg(args, dur, f["iid"])
+            if not good and remux and not self._cancel:
+                # le ré-emballage peut échouer (conteneur têtu) :
+                # on retente en réencodage complet
+                self._set_status(f["iid"], t("conversion..."))
+                good = self._run_ffmpeg(
+                    ["-i", path, "-c:v", "libx264", "-preset",
+                     "veryfast", "-crf", "23", "-c:a", "aac",
+                     "-b:a", "192k", "-movflags", "+faststart", dest],
+                    dur, f["iid"])
+            self._set_status(f["iid"],
+                             t("✅ fait") if good else
+                             (t("annulé") if self._cancel
+                              else t("❌ échec")))
+            ok += good
+            ko += not good and not self._cancel
+
+        self._working = False
+        if ok:
+            log_action(t("Convertisseur : {n} fichier(s) convertis "
+                         "en {f}").format(n=ok, f=target))
+        self.after(0, lambda: (
+            self.go_btn.configure(text=t("▶ Convertir"),
+                                  style="Green.TButton"),
+            self.add_btn.configure(state="normal"),
+            self.prog.set(0),
+            self.status_lbl.configure(
+                text=t("Terminé : {ok} converti(s), {ko} échec(s)."
+                       ).format(ok=ok, ko=ko))))
+
+
+# ======================================================================
 #  MODULE : Wi-Fi
 # ======================================================================
 class WifiModule(ttk.Frame):
@@ -2873,6 +3272,8 @@ MODULES = [
      "Libérer de l'espace : fichiers temporaires, caches, corbeille."),
     ("disk", "💾", "Espace disque",
      "Trouver ce qui remplit ton disque : plus gros dossiers et fichiers."),
+    ("convert", "🔄", "Convertisseur",
+     "Convertir vidéos, audios et images : MP4, MP3, JPG, PNG."),
 ]
 
 
@@ -3138,6 +3539,8 @@ class ProBox(ctk.CTk):
                 page = CleanModule(self.content, self)
             elif key == "disk":
                 page = DiskModule(self.content, self)
+            elif key == "convert":
+                page = ConvertModule(self.content, self)
             else:
                 page = TidyModule(self.content, self)
             self._pages[key] = page
