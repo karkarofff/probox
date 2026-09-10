@@ -5,7 +5,7 @@
 <h1 align="center">ProBox</h1>
 
 <p align="center">
-  A Windows system toolbox — seven everyday tools in one clean app.
+  A Windows system toolbox — eight everyday tools in one clean app.
 </p>
 
 <p align="center">
@@ -32,6 +32,7 @@ ProBox groups the little tools Windows should have shipped with, in one modern d
 - 📶 **Wi-Fi** — every Wi-Fi network saved on the PC with its password (the same data Windows shows in its settings, just 100x more convenient). Hidden by default, one button to reveal, one to copy.
 - 🧽 **Cleanup** — free disk space: temp files, browser caches, thumbnail cache, recycle bin, Windows Update leftovers. Analyze first with per-category sizes and a detailed view of what would be removed.
 - 💾 **Disk space** — a pocket TreeSize: heaviest folders (browsable), largest files, right-click actions, and a basic drive-health check.
+- 🔄 **Converter** — converts videos, audio and images to MP4, MP3, JPG or PNG. If the video is already in the right codec it's remuxed in seconds instead of re-encoded; otherwise full conversion with a real progress bar. ffmpeg is fetched automatically on first use, converted files are created next to the originals.
 
 Plus: a live **PC status card** on the home screen (CPU · RAM · disk), an **action history** of everything ProBox changed on the system, bilingual interface (English/French, auto-detected, 🌐 button), update notifications, and a fully modern CustomTkinter interface (rounded everything, smooth hovers) since v2.0.
 
