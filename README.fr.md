@@ -5,7 +5,7 @@
 <h1 align="center">ProBox</h1>
 
 <p align="center">
-  Une boîte à outils système pour Windows — sept outils du quotidien dans une seule app propre.
+  Une boîte à outils système pour Windows — huit outils du quotidien dans une seule app propre.
 </p>
 
 <p align="center">
@@ -31,6 +31,7 @@ ProBox regroupe les petits outils que Windows aurait dû livrer d'origine, dans 
 - 📶 **Wi-Fi** — tous les réseaux Wi-Fi enregistrés sur le PC avec leur mot de passe (les mêmes données que Windows affiche dans ses paramètres, en 100 fois plus pratique). Masqués par défaut, un bouton pour révéler, un pour copier.
 - 🧽 **Nettoyage** — libère de l'espace : fichiers temporaires, caches navigateurs, cache des miniatures, corbeille, restes de Windows Update. Analyse d'abord avec les tailles par catégorie et le détail de ce qui serait supprimé.
 - 💾 **Espace disque** — un TreeSize de poche : dossiers les plus lourds (navigables), plus gros fichiers, actions au clic droit, et un contrôle basique de la santé des disques.
+- 🔄 **Convertisseur** — convertit vidéos, audios et images en MP4, MP3, JPG ou PNG. Si la vidéo est déjà dans le bon codec, elle est ré-emballée en quelques secondes au lieu d'être réencodée ; sinon conversion complète avec vraie barre de progression. ffmpeg est récupéré automatiquement à la première utilisation, les fichiers convertis sont créés à côté des originaux.
 
 Et aussi : une **carte État du PC** en temps réel sur l'accueil (CPU · RAM · disque), un **historique des actions** de tout ce que ProBox a modifié sur le système, l'interface bilingue (français/anglais, détection auto, bouton 🌐), les notifications de mise à jour, et une interface entièrement modernisée en CustomTkinter (coins arrondis, survols fluides) depuis la v2.0.
 
